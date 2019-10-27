@@ -5,6 +5,8 @@ import { Formik } from 'formik';
 import { Button } from 'react-native-web';
 import React, { Component } from 'react';
 import firebase from 'firebase';
+import headerImage from './landing_header.jpg';
+import LoadingOverlay from 'react-loading-overlay';
 
 
 class Recipient extends Component {
@@ -14,8 +16,9 @@ class Recipient extends Component {
         this.state = {
             messageValue: '',
             messageId: props.location.search.split('?').pop(),
-            min: '',
-            max: ''
+            min: undefined,
+            max: '',
+            isLoading: true
         };
 
         const config = {
@@ -41,12 +44,14 @@ class Recipient extends Component {
                 senderEmail: snapshot.val().senderEmail,
                 recipientEmail: snapshot.val().recipientEmail,
                 min: snapshot.val().budgetMin,
-                max: snapshot.val().budgetMax
+                max: snapshot.val().budgetMax,
+                isLoading: false
             });
         });
     }
 
     _onButtonSubmitClick = (value) => {
+        this.setState({ isLoading: true });
         const {
             recipientMessage,
         } = value;
@@ -57,6 +62,8 @@ class Recipient extends Component {
             this._sendEmail(recipientMessage);
 
         }).catch((error)=>{
+            this.setState({ isLoading: false });
+
             console.log('error ' , error)
         })
 
@@ -76,39 +83,48 @@ class Recipient extends Component {
                 user_id
             )
             .then(res => {
+                this.setState({ isLoading: false });
+
                 console.log('XCX', res)
             })
             // Handle errors here however you like
-            .catch(err => console.error('Failed to send feedback. Error: ', err));
+
+            .catch(err => {
+                this.setState({ isLoading: false });
+
+                console.error('Failed to send feedback. Error: ', err)
+            });
     }
 
 
     render() {
 
         return (
-            <View style={styles.container}>
-                <Image source={logo} style={styles.logo}/>
-                <View style={styles.yellowRibbon}>
-                    <Text style={styles.titleBar}>Hassle-free gifting</Text>
-                </View>
-                <Text style={styles.title}>Hassle-free gifting</Text>
+            <LoadingOverlay
+                active={this.state.isLoading}
+                spinner
+            >
+                <View style={styles.container}>
+                    <Image source={logo} style={styles.logo}/>
+                    <View style={{ marginVertical: 16, marginHorizontal: 16, borderBottomColor: '#FDF5D8', borderBottomWidth: 50, width: '100%', height: 50 }}/>
+                    <Image source={headerImage} style={styles.headerImg}/>
 
-                <View style={styles.formContainer}>
-                    <Image source={image} style={styles.imageAsset}/>
-                    <Text style={{ fontSize: 34 }}>Your Occasion is About to Coming</Text>
-                    <View style={{ alignItems: 'flex-start',
-                        justifyContent: 'flex-start', width: '100%' }}>
-                        <Text style={{ fontSize: 20, marginTop: 50 }}>{this.state.messageValue}</Text>
-                        <Text style={{ fontSize: 18, marginTop: 20 }}>{`Your budget is limited to Rp${this.state.min} - Rp${this.state.max}`}</Text>
+                    <View style={styles.formContainer}>
+                        <Image source={image} style={styles.imageAsset}/>
+                        <Text style={{ fontSize: 34, marginTop: 30 }}>Your Occasion is About to Coming</Text>
+                        <View style={{ alignItems: 'flex-start',
+                            justifyContent: 'flex-start', width: '100%' }}>
+                            <Text style={{ fontSize: 20, marginTop: 50 }}>{this.state.messageValue}</Text>
+                            <Text style={{ fontSize: 18, marginTop: 20 }}>{`Your budget is limited to Rp${this.state.min} - Rp${this.state.max}`}</Text>
 
-                    </View>
+                        </View>
 
-                    <Formik initialValues={{
-                        recipientMessage: ''
-                    }}
-                            onSubmit={this._onButtonSubmitClick}>
-                        {({ handleChange, handleSubmit, values }) => (
-                            <View style={{ flex: 1, width: '100%' }}>
+                        <Formik initialValues={{
+                            recipientMessage: ''
+                        }}
+                                onSubmit={this._onButtonSubmitClick}>
+                            {({ handleChange, handleSubmit, isValid }) => (
+                                <View style={{ flex: 1, width: '100%' }}>
                                     <View style={{ flex: 1, marginTop: 40, width: '100%' }}>
                                         <Text style={{ fontSize: 18 }}>Please explain what you really want!</Text>
                                         <TextInput
@@ -127,13 +143,14 @@ class Recipient extends Component {
                                             placeholder={'I’m very happy now. Just cannot think clearly! But if you really want to know about my wish, it is a brand new Wallet.'}/>
                                     </View>
                                     <View style={{ marginTop: 40, width: 250 }}>
-                                        <Button color={'#000'}  onPress={handleSubmit} title={'SEND'}/>
+                                        <Button disabled={!isValid} color={'#000'}  onPress={handleSubmit} title={'SEND'}/>
                                     </View>
-                            </View>
-                        )}
-                    </Formik>
+                                </View>
+                            )}
+                        </Formik>
+                    </View>
                 </View>
-            </View>
+            </LoadingOverlay>
         );
     }
 }
@@ -157,8 +174,8 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 100,
-        paddingVertical: 70
+        paddingBottom: 100
+        // paddingVertical: 70
     },
     yellowRibbon: {
         paddingTop: 50,
