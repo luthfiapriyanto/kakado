@@ -1,0 +1,3 @@
+rootProject.name = 'Gradire'
+
+include ':app'
